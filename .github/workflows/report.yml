@@ -1,0 +1,46 @@
+name: CAGUUU Report Broadcast
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily / daily_weekly / weekly / monthly"
+        required: true
+        default: "daily"
+        type: choice
+        options:
+          - daily
+          - daily_weekly
+          - weekly
+          - monthly
+      biz_date:
+        description: "optional, YYYY-MM-DD; default is yesterday (Asia/Shanghai)"
+        required: false
+        default: ""
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run report
+        env:
+          TZ: Asia/Shanghai
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DB: ${{ secrets.MYSQL_DB }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          BIZ_DATE: ${{ github.event.inputs.biz_date }}
+        run: |
+          python -m src.run_report --mode "${{ github.event.inputs.mode }}"
