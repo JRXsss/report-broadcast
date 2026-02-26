@@ -56,28 +56,21 @@ def _fmt_val(val, is_percent=False):
     return str(val)
 
 def build_brief_message(df: pd.DataFrame, mode: str):
-    """
-    df: SQL 输出表。约定：
-      - 第0行：表头
-      - 第1行：current（昨日/上周/上月）
-      - 第2行：compare（前日/前周/前月/上周同期）
-      - 第3行：growth（增长率）
-    """
-    if df is None or df.empty or len(df) =< 4:
-        return ("SQL返回行数不足（需要>=3行用于：表头/当前/对比/增长率）", True)
+    # ✅ 只需要 3 行：当前 / 对比 / 增长率
+    if df is None or df.empty or len(df) < 3:
+        return ("SQL返回行数不足（需要>=3行用于：当前/对比/增长率）", True)
 
-    # 把列名当“表头行”；兼容你原结构：前2列是 label/date，其余是指标
     cols = list(df.columns)
     if len(cols) < 3:
         return ("SQL返回列数不足（需要>=3列）", True)
 
     indicator_cols = cols[2:]
 
-    current_row = df.iloc[1]
-    compare_row = df.iloc[2]
-    growth_row = df.iloc[3]
+    # ✅ 对齐你同事脚本：df 第1行就是“昨日”(Excel第2行)
+    current_row = df.iloc[0]
+    compare_row = df.iloc[1]
+    growth_row  = df.iloc[2]
 
-    # 日期信息（等价于你读取 A2:B2 / A3:B3）:contentReference[oaicite:9]{index=9}
     current_label = str(current_row.iloc[0])
     current_date  = str(current_row.iloc[1])
     compare_label = str(compare_row.iloc[0])
