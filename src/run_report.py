@@ -3,9 +3,9 @@ import argparse
 import datetime as dt
 import pandas as pd
 
-from mysql_client import get_mysql_engine, read_sql_file, run_query
-from report_format import build_brief_message
-from wecom import send_wecom_text
+from .mysql_client import get_mysql_engine, read_sql_file, run_query
+from .report_format import build_brief_message
+from .wecom import send_wecom_text
 
 MODE_TO_SQL = {
     "daily": "sql/daily.sql",
