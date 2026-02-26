@@ -63,8 +63,8 @@ def build_brief_message(df: pd.DataFrame, mode: str):
       - 第2行：compare（前日/前周/前月/上周同期）
       - 第3行：growth（增长率）
     """
-    if df is None or df.empty or len(df) < 4:
-        return ("SQL返回行数不足（需要>=4行用于：表头/当前/对比/增长率）", True)
+    if df is None or df.empty or len(df) =< 4:
+        return ("SQL返回行数不足（需要>=3行用于：表头/当前/对比/增长率）", True)
 
     # 把列名当“表头行”；兼容你原结构：前2列是 label/date，其余是指标
     cols = list(df.columns)
