@@ -173,8 +173,8 @@ LEFT JOIN (
   ) sale_g_min
   GROUP BY tday, order_seq
 ) order_sale 
+ON sale_g.tday = order_sale.tday 
+   AND sale_g.order_seq = order_sale.order_seq
   ;
 
 COMMIT;
-ON sale_g.tday = order_sale.tday 
-   AND sale_g.order_seq = order_sale.order_seq
