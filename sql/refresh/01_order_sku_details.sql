@@ -1,7 +1,7 @@
 START TRANSACTION;
 
 DELETE FROM caguuu_report.order_sku_details
-WHERE date = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d');
+WHERE tday = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d');
 
 INSERT INTO caguuu_report.order_sku_details
 SELECT
