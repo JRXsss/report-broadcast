@@ -112,3 +112,5 @@ GROUP BY
 ORDER BY
   fs.date DESC,
   uv DESC;
+
+COMMIT;
