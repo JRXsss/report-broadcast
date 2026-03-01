@@ -37,23 +37,49 @@ def _to_float_growth(x):
         return None
 
 def _fmt_val(val, is_percent=False):
+    import pandas as pd
+
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return "无"
+
+    # percent
     if is_percent:
+        # 如果已经是字符串百分号，尽量转成两位
         if isinstance(val, str) and "%" in val:
-            return val
+            try:
+                x = float(val.strip().replace("%", ""))
+                return f"{x:.2f}%"
+            except:
+                return val
+
         try:
-            return f"{float(val)*100:.2f}%"
+            x = float(val) * 100
+            return f"{x:.2f}%"
         except:
             return str(val)
-    if isinstance(val, (int,)):
+
+    # numeric
+    try:
+        x = float(val)
+        return f"{x:,.2f}"
+    except:
         return str(val)
-    if isinstance(val, float):
-        # 跟你原脚本的展示风格接近：大数不保留小数
-        if abs(val) > 10000:
-            return f"{val:,.0f}"
-        return f"{val:,.2f}"
-    return str(val)
+
+def _fmt_growth(g_val):
+    import pandas as pd
+    if g_val is None or (isinstance(g_val, float) and pd.isna(g_val)):
+        return "无"
+    if isinstance(g_val, str) and "%" in g_val:
+        try:
+            x = float(g_val.strip().replace("%", ""))
+            return f"{x:.2f}%"
+        except:
+            return g_val
+    try:
+        x = float(g_val) * 100
+        return f"{x:.2f}%"
+    except:
+        return str(g_val)
 
 def build_brief_message(df: pd.DataFrame, mode: str):
     # ✅ 只需要 3 行：当前 / 对比 / 增长率
@@ -98,7 +124,8 @@ def build_brief_message(df: pd.DataFrame, mode: str):
             warn = ""
 
         # 增长率展示：优先保留原值（你原脚本也是直接用cell值）:contentReference[oaicite:10]{index=10}
-        g_show = "无" if g_val is None else str(g_val)
+        # g_show = "无" if g_val is None else str(g_val)
+        g_show = _fmt_growth(g_val)
 
         # 对比口径文案差异
         cmp_name = MODE_COMPARE_NAME.get(mode, "对比")
