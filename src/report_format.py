@@ -17,6 +17,23 @@ MODE_CURRENT_NAME = {
     "monthly": "上月",
 }
 
+# 整数展示（千分位，无小数）
+INT_METRICS = {
+    "商详UV",
+    "销售额",
+    "件单价",
+    "客单价",
+}
+
+# 两位小数展示（千分位，两位小数）
+DEC2_METRICS = {
+    "加购数",
+    "支付数",
+    "净销售量",
+    "UV价值",
+    "连带率",
+}
+
 def _to_float_growth(x):
     if x is None or (isinstance(x, float) and pd.isna(x)):
         return None
@@ -36,50 +53,40 @@ def _to_float_growth(x):
     except:
         return None
 
-def _fmt_val(val, is_percent=False):
+def _fmt_metric_value(metric_name: str, val):
     import pandas as pd
-
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return "无"
 
-    # percent
-    if is_percent:
-        # 如果已经是字符串百分号，尽量转成两位
-        if isinstance(val, str) and "%" in val:
-            try:
-                x = float(val.strip().replace("%", ""))
-                return f"{x:.2f}%"
-            except:
-                return val
-
-        try:
-            x = float(val) * 100
-            return f"{x:.2f}%"
-        except:
-            return str(val)
-
-    # numeric
     try:
         x = float(val)
-        return f"{x:,.2f}"
-    except:
+    except Exception:
         return str(val)
 
-def _fmt_growth(g_val):
+    if metric_name in INT_METRICS:
+        return f"{x:,.0f}"
+    # 默认两位小数（也可只对白名单 DEC2_METRICS 生效）
+    return f"{x:,.2f}"
+
+def _fmt_percent(val):
     import pandas as pd
-    if g_val is None or (isinstance(g_val, float) and pd.isna(g_val)):
+    if val is None or (isinstance(val, float) and pd.isna(val)):
         return "无"
-    if isinstance(g_val, str) and "%" in g_val:
+
+    # 已经带%（可能是 "10.96%"）
+    if isinstance(val, str) and "%" in val:
         try:
-            x = float(g_val.strip().replace("%", ""))
+            x = float(val.strip().replace("%", ""))
             return f"{x:.2f}%"
-        except:
-            return g_val
+        except Exception:
+            return val
+
     try:
-        x = float(g_val) * 100
+        # 如果 val 是 0.0038 这种比例
+        x = float(val) * 100
         return f"{x:.2f}%"
-    except:
-        return str(g_val)
+    except Exception:
+        return str(val)
 
 def build_brief_message(df: pd.DataFrame, mode: str):
     # ✅ 只需要 3 行：当前 / 对比 / 增长率
@@ -111,11 +118,20 @@ def build_brief_message(df: pd.DataFrame, mode: str):
         p_val = compare_row[name]
         g_val = growth_row[name]
 
+        # 百分比类（转化率/加购率等）用百分比格式；其余按指标白名单走整数/两位小数
         is_percent = (str(name) in PERCENT_KEYS)
-        y_fmt = _fmt_val(y_val, is_percent=is_percent)
-        p_fmt = _fmt_val(p_val, is_percent=is_percent)
 
+        if is_percent:
+            y_fmt = _fmt_percent(y_val)   # e.g. 0.0038 -> 0.38%
+            p_fmt = _fmt_percent(p_val)
+        else:
+            y_fmt = _fmt_metric_value(str(name), y_val)  # 整数/两位小数 + 千分位
+            p_fmt = _fmt_metric_value(str(name), p_val)
+
+        # 增长率统一按百分比两位小数展示（兼容 0.1096 或 "10.96%"）
+        g_show = _fmt_growth(g_val)
         g_float = _to_float_growth(g_val)
+
         if g_float is not None and g_float < -0.10:
             warn = " （预警-↓↓↓）"
         elif g_float is not None and g_float > 0.20:
@@ -123,17 +139,13 @@ def build_brief_message(df: pd.DataFrame, mode: str):
         else:
             warn = ""
 
-        # 增长率展示：优先保留原值（你原脚本也是直接用cell值）:contentReference[oaicite:10]{index=10}
-        # g_show = "无" if g_val is None else str(g_val)
-        g_show = _fmt_growth(g_val)
-
         # 对比口径文案差异
         cmp_name = MODE_COMPARE_NAME.get(mode, "对比")
         cur_name = MODE_CURRENT_NAME.get(mode, "当前")
 
         lines.append(f"{name}：{cur_name}{y_fmt}，{cmp_name}{p_fmt}，增长率{g_show}{warn}")
 
-    # 总预警：销售额增长率 < -10% :contentReference[oaicite:11]{index=11}
+    # 总预警：销售额增长率 < -10%
     alert = False
     if ALERT_KEY in indicator_cols:
         g_float = _to_float_growth(growth_row[ALERT_KEY])
@@ -141,3 +153,5 @@ def build_brief_message(df: pd.DataFrame, mode: str):
             alert = True
 
     return ("\n".join(lines), alert)
+
+
