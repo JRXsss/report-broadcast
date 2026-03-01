@@ -57,7 +57,6 @@ def _fmt_metric_value(metric_name: str, val):
     import pandas as pd
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return "无"
-
     try:
         x = float(val)
     except Exception:
@@ -65,8 +64,10 @@ def _fmt_metric_value(metric_name: str, val):
 
     if metric_name in INT_METRICS:
         return f"{x:,.0f}"
-    # 默认两位小数（也可只对白名单 DEC2_METRICS 生效）
-    return f"{x:,.2f}"
+    if metric_name in DEC2_METRICS:
+        return f"{x:,.2f}"
+    # 默认：整数（你也可以改成两位小数）
+    return f"{x:,.0f}"
 
 def _fmt_percent(val):
     import pandas as pd
@@ -87,6 +88,47 @@ def _fmt_percent(val):
         return f"{x:.2f}%"
     except Exception:
         return str(val)
+
+def _fmt_growth(val):
+    """
+    增长率统一展示为两位小数百分比：
+    - "10.96%" -> "10.96%"
+    - 0.1096   -> "10.96%"
+    - 10.96    -> "10.96%"  （兼容有些SQL直接给的是百分数）
+    """
+    import pandas as pd
+
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return "无"
+
+    # 情况1：字符串且带%
+    if isinstance(val, str):
+        s = val.strip()
+        if s.endswith("%"):
+            try:
+                x = float(s[:-1])
+                return f"{x:.2f}%"
+            except Exception:
+                return s
+
+        # 情况2：字符串不带%，尝试转数字
+        try:
+            x = float(s)
+        except Exception:
+            return s
+    else:
+        # 情况3：数值
+        try:
+            x = float(val)
+        except Exception:
+            return str(val)
+
+    # 关键：判断 x 是比例(0.1096) 还是百分数(10.96)
+    # 一般增长率在 [-1, 1] 区间更像比例；超过这个更像百分数
+    if -1.5 <= x <= 1.5:
+        x = x * 100
+
+    return f"{x:.2f}%"
 
 def build_brief_message(df: pd.DataFrame, mode: str):
     # ✅ 只需要 3 行：当前 / 对比 / 增长率
